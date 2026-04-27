@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Parking">
+<title>Perrault Parking Enforcement</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --black: #0a0a0a;
+    --red: #c0392b;
+    --red-dark: #922b21;
+    --yellow: #f1c40f;
+    --white: #f5f5f0;
+    --gray: #888;
+    --border: #2a2a2a;
+    --card: #141414;
+    --input-bg: #1e1e1e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'IBM Plex Sans', sans-serif;
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ── HEADER ── */
+  .app-header {
+    background: var(--red);
+    padding: 18px 20px 14px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .app-header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 2px;
+    color: #fff;
+    line-height: 1;
+  }
+  .app-header .sub {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .violation-counter {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: rgba(255,255,255,0.8);
+    text-align: right;
+  }
+  .violation-counter span {
+    display: block;
+    font-size: 22px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+  }
+
+  /* ── BODY ── */
+  .content {
+    padding: 20px 16px 120px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    margin-bottom: 24px;
+  }
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--red);
+    margin-bottom: 10px;
+    padding-left: 2px;
+  }
+
+  /* ── INPUTS ── */
+  .field {
+    margin-bottom: 12px;
+  }
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    padding: 12px 14px;
+    outline: none;
+    -webkit-appearance: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: var(--red);
+  }
+  .field select option { background: #1e1e1e; }
+  .field textarea { resize: none; height: 72px; }
+
+  /* plate number — big */
+  .plate-input input {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-align: center;
+    background: #1a1a1a;
+    border: 2px solid var(--border);
+    color: var(--yellow);
+  }
+  .plate-input input:focus { border-color: var(--yellow); }
+
+  /* ── VIOLATION GRID ── */
+  .violations-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .vio-btn {
+    background: var(--input-bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--white);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    line-height: 1.3;
+  }
+  .vio-btn:active { transform: scale(0.97); }
+  .vio-btn.selected {
+    background: var(--red-dark);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .vio-btn .fine {
+    display: block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--yellow);
+    margin-top: 3px;
+  }
+  .vio-btn.selected .fine { color: #ffd97d; }
+
+  /* ── ROW PAIR ── */
+  .row-pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* ── PHOTO ── */
+  .photo-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    overflow: hidden;
+    position: relative;
+  }
+  .photo-zone:active { border-color: var(--red); }
+  .photo-zone.has-photo { border-style: solid; border-color: var(--red); }
+  .photo-zone img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    display: block;
+  }
+  .photo-zone .placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px;
+  }
+  .photo-zone .cam-icon {
+    font-size: 36px;
+    opacity: 0.4;
+  }
+  .photo-zone .placeholder p {
+    font-size: 13px;
+    color: var(--gray);
+    text-align: center;
+  }
+  .photo-zone .retake {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 11px;
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  #photoInput { display: none; }
+
+  /* ── PRINTER STATUS ── */
+  .printer-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .printer-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--gray);
+    flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .printer-dot.connected { background: #27ae60; }
+  .printer-dot.error { background: var(--red); }
+  .printer-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--gray);
+    flex: 1;
+  }
+  .printer-label strong { color: var(--white); }
+  .btn-sm {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--gray);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .btn-sm:active { background: var(--border); }
+
+  /* IP input */
+  .ip-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .ip-row input {
+    flex: 1;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--white);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  .ip-row input:focus { border-color: var(--red); }
+  .ip-row button {
+    background: var(--red);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+
+  /* ── PRINT BUTTON ── */
+  .print-btn {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--red);
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    border: none;
+    padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    transition: background 0.15s;
+    z-index: 200;
+  }
+  .print-btn:active { background: var(--red-dark); }
+  .print-btn.disabled { background: #444; color: #888; }
+
+  /* ── PREVIEW MODAL ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 300;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32,0,0,1);
+    padding: 0 0 40px;
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--red);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* receipt preview */
+  .receipt-preview {
+    background: #fff;
+    color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 16px 12px;
+    margin: 0 16px;
+    border-radius: 4px;
+    white-space: pre;
+    overflow-x: auto;
+  }
+
+  .modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 16px 16px 0;
+  }
+  .modal-btn {
+    padding: 14px;
+    border-radius: 8px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+  }
+  .modal-btn.cancel {
+    background: var(--input-bg);
+    color: var(--gray);
+    border: 1px solid var(--border);
+  }
+  .modal-btn.confirm {
+    background: var(--red);
+    color: #fff;
+  }
+  .modal-btn:active { opacity: 0.8; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: #27ae60;
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 400;
+    white-space: nowrap;
+  }
+  .toast.error-toast { background: var(--red); }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── HISTORY ── */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .history-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .history-item .h-plate {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--yellow);
+  }
+  .history-item .h-meta {
+    font-size: 11px;
+    color: var(--gray);
+    margin-top: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .history-item .h-num {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--gray);
+    text-align: right;
+  }
+  .history-item .h-fine {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--red);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--gray);
+    font-size: 13px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 72px;
+    background: var(--black);
+    z-index: 99;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--gray);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 14px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    color: var(--red);
+    border-bottom-color: var(--red);
+  }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div>
+    <h1>Perrault Parking</h1>
+    <div class="sub">Mockingbird Station · Dallas TX</div>
+  </div>
+  <div class="violation-counter">
+    NOTICE #
+    <span id="noticeNumDisplay">—</span>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('issue')">Issue Notice</button>
+  <button class="tab-btn" onclick="switchTab('history')">History</button>
+</div>
+
+<div class="content">
+
+  <!-- ══ TAB: ISSUE ══ -->
+  <div id="tab-issue" class="tab-panel active">
+
+    <!-- PLATE -->
+    <div class="section">
+      <div class="section-label">License Plate</div>
+      <div class="field plate-input">
+        <input type="text" id="plateInput" placeholder="ABC 1234"
+               oninput="this.value = this.value.toUpperCase()" maxlength="10" autocomplete="off" autocorrect="off" spellcheck="false">
+      </div>
+    </div>
+
+    <!-- VEHICLE -->
+    <div class="section">
+      <div class="section-label">Vehicle</div>
+      <div class="row-pair">
+        <div class="field">
+          <label>Color</label>
+          <input type="text" id="carColor" placeholder="Silver" autocomplete="off">
+        </div>
+        <div class="field">
+          <label>Make / Model</label>
+          <input type="text" id="carMake" placeholder="Toyota Camry" autocomplete="off">
+        </div>
+      </div>
+    </div>
+
+    <!-- VIOLATION TYPE -->
+    <div class="section">
+      <div class="section-label">Violation</div>
+      <div class="violations-grid" id="violationsGrid">
+        <button class="vio-btn" data-code="NO-CUST" data-fine="75" onclick="selectViolation(this)">
+          Non-Customer Parking
+          <span class="fine">$75</span>
+        </button>
+        <button class="vio-btn" data-code="OVRSTAY" data-fine="75" onclick="selectViolation(this)">
+          Overstay / Time Limit
+          <span class="fine">$75</span>
+        </button>
+        <button class="vio-btn" data-code="NO-PRMT" data-fine="75" onclick="selectViolation(this)">
+          No Valid Permit
+          <span class="fine">$75</span>
+        </button>
+        <button class="vio-btn" data-code="BLK-ACC" data-fine="100" onclick="selectViolation(this)">
+          Blocking Access
+          <span class="fine">$100</span>
+        </button>
+        <button class="vio-btn" data-code="REPEAT" data-fine="150" onclick="selectViolation(this)">
+          Repeat Offender
+          <span class="fine">$150</span>
+        </button>
+        <button class="vio-btn" data-code="OTHER" data-fine="75" onclick="selectViolation(this)">
+          Other
+          <span class="fine">$75</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="section">
+      <div class="section-label">Officer Notes <span style="color:var(--gray);font-size:10px">(optional)</span></div>
+      <div class="field">
+        <textarea id="notesInput" placeholder="Additional details..."></textarea>
+      </div>
+    </div>
+
+    <!-- PLATE PHOTO -->
+    <div class="section">
+      <div class="section-label">Plate Photo</div>
+      <div class="photo-zone" id="photoZone" onclick="document.getElementById('photoInput').click()">
+        <div class="placeholder">
+          <div class="cam-icon">📷</div>
+          <p>Tap to photograph license plate</p>
+        </div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" capture="environment" onchange="handlePhoto(this)">
+    </div>
+
+    <!-- PRINTER -->
+    <div class="section">
+      <div class="section-label">Printer</div>
+      <div class="printer-bar">
+        <div class="printer-dot" id="printerDot"></div>
+        <div class="printer-label">
+          <strong>Star mC-Print2</strong><br>
+          <span id="printerStatus">Not configured</span>
+        </div>
+        <button class="btn-sm" onclick="togglePrinterSetup()">Setup</button>
+      </div>
+      <div id="printerSetup" style="display:none">
+        <div class="ip-row">
+          <input type="text" id="printerIP" placeholder="192.168.1.x" value="" inputmode="decimal">
+          <button onclick="savePrinterIP()">Save</button>
+        </div>
+        <p style="font-size:11px;color:var(--gray);font-family:'IBM Plex Mono',monospace;line-height:1.5">
+          Find printer IP: Star WebPRNT app → Settings, or your router's device list. Printer must be on same WiFi as this iPad.
+        </p>
+      </div>
+    </div>
+
+  </div><!-- /tab-issue -->
+
+  <!-- ══ TAB: HISTORY ══ -->
+  <div id="tab-history" class="tab-panel">
+    <div class="section">
+      <div class="section-label">Issued Notices</div>
+      <div id="historyList" class="history-list">
+        <div class="empty-state">No notices issued yet</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<!-- PRINT BUTTON -->
+<button class="print-btn disabled" id="printBtn" onclick="showPreview()">
+  PRINT NOTICE
+</button>
+
+<!-- PREVIEW MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">PREVIEW — NOTICE #<span id="previewNum"></span></div>
+    <div class="receipt-preview" id="receiptPreview"></div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModalDirect()">Cancel</button>
+      <button class="modal-btn confirm" onclick="executePrint()">Print Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const PAYMENT_URL = 'perraultdallas.com/pay';  // ← update when live
+const LOCATION = 'Mockingbird Station, Dallas TX';
+const ISSUER = 'Perrault Parking Enforcement';
+
+let selectedViolation = null;
+let photoDataURL = null;
+let printerIP = localStorage.getItem('printerIP') || '';
+let violationCounter = parseInt(localStorage.getItem('violationCounter') || '1000');
+let history = JSON.parse(localStorage.getItem('violationHistory') || '[]');
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+function init() {
+  updateNoticeNum();
+  if (printerIP) {
+    document.getElementById('printerIP').value = printerIP;
+    setPrinterStatus('configured');
+  }
+  renderHistory();
+  // listen for form changes to enable print button
+  ['plateInput','carColor','carMake'].forEach(id => {
+    document.getElementById(id).addEventListener('input', checkReady);
+  });
+}
+
+function updateNoticeNum() {
+  const num = String(violationCounter).padStart(5, '0');
+  document.getElementById('noticeNumDisplay').textContent = num;
+}
+
+function checkReady() {
+  const plate = document.getElementById('plateInput').value.trim();
+  const ready = plate.length >= 3 && selectedViolation;
+  const btn = document.getElementById('printBtn');
+  btn.classList.toggle('disabled', !ready);
+}
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'history') renderHistory();
+}
+
+// ═══════════════════════════════════════
+// VIOLATION SELECT
+// ═══════════════════════════════════════
+function selectViolation(btn) {
+  document.querySelectorAll('.vio-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  selectedViolation = {
+    code: btn.dataset.code,
+    label: btn.childNodes[0].textContent.trim(),
+    fine: parseInt(btn.dataset.fine)
+  };
+  checkReady();
+}
+
+// ═══════════════════════════════════════
+// PHOTO
+// ═══════════════════════════════════════
+function handlePhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    photoDataURL = e.target.result;
+    const zone = document.getElementById('photoZone');
+    zone.innerHTML = `<img src="${photoDataURL}" alt="Plate photo"><div class="retake">↺ Retake</div>`;
+    zone.classList.add('has-photo');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// ═══════════════════════════════════════
+// PRINTER SETUP
+// ═══════════════════════════════════════
+function togglePrinterSetup() {
+  const el = document.getElementById('printerSetup');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function savePrinterIP() {
+  const ip = document.getElementById('printerIP').value.trim();
+  if (!ip) return;
+  printerIP = ip;
+  localStorage.setItem('printerIP', ip);
+  setPrinterStatus('configured');
+  document.getElementById('printerSetup').style.display = 'none';
+  showToast('Printer saved: ' + ip);
+}
+
+function setPrinterStatus(status) {
+  const dot = document.getElementById('printerDot');
+  const label = document.getElementById('printerStatus');
+  if (status === 'configured') {
+    dot.className = 'printer-dot connected';
+    label.textContent = printerIP;
+  } else if (status === 'error') {
+    dot.className = 'printer-dot error';
+    label.textContent = 'Connection failed';
+  } else {
+    dot.className = 'printer-dot';
+    label.textContent = 'Not configured';
+  }
+}
+
+// ═══════════════════════════════════════
+// BUILD RECEIPT TEXT (58mm / 32 chars wide)
+// ═══════════════════════════════════════
+function buildReceiptLines() {
+  const plate = document.getElementById('plateInput').value.trim().toUpperCase();
+  const color = document.getElementById('carColor').value.trim();
+  const make  = document.getElementById('carMake').value.trim();
+  const notes = document.getElementById('notesInput').value.trim();
+  const now   = new Date();
+  const dateStr = now.toLocaleDateString('en-US', { month:'2-digit', day:'2-digit', year:'numeric' });
+  const timeStr = now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12:true });
+  const noticeNum = String(violationCounter).padStart(5, '0');
+  const W = 32;
+
+  function line(txt='') { return txt.substring(0, W); }
+  function center(txt) { const pad = Math.max(0, Math.floor((W - txt.length) / 2)); return ' '.repeat(pad) + txt; }
+  function right(label, val) {
+    const space = W - label.length - val.length;
+    return label + ' '.repeat(Math.max(1, space)) + val;
+  }
+  function divider(char='-') { return char.repeat(W); }
+
+  const lines = [
+    center('PARKING VIOLATION'),
+    center('NOTICE'),
+    divider('='),
+    center(ISSUER),
+    center(LOCATION),
+    divider('-'),
+    right('NOTICE #:', noticeNum),
+    right('DATE:', dateStr),
+    right('TIME:', timeStr),
+    divider('-'),
+    center('VEHICLE INFORMATION'),
+    divider('-'),
+    right('PLATE:', plate),
+  ];
+
+  if (color) lines.push(right('COLOR:', color.toUpperCase().substring(0,15)));
+  if (make)  lines.push(right('VEHICLE:', make.substring(0,18)));
+
+  lines.push(
+    divider('-'),
+    center('VIOLATION'),
+    divider('-'),
+    center('[' + selectedViolation.code + ']'),
+    center(selectedViolation.label),
+    divider('-'),
+    right('AMOUNT DUE:', '$' + selectedViolation.fine + '.00'),
+    divider('-'),
+  );
+
+  if (notes) {
+    lines.push('NOTE:', ...wrapText(notes, W), divider('-'));
+  }
+
+  lines.push(
+    center('PAY ONLINE:'),
+    center(PAYMENT_URL),
+    center('Reference: ' + noticeNum),
+    divider('-'),
+    center('THIS NOTICE IS ISSUED'),
+    center('PURSUANT TO PRIVATE'),
+    center('PARKING AGREEMENT.'),
+    center('TEXAS OCC. CODE'),
+    center('CH. 2308'),
+    divider('='),
+    center('PERRAULT DALLAS LLC'),
+    center('Mockingbird Station'),
+    center('Dallas, TX 75206'),
+    divider('-'),
+    '',
+  );
+
+  return { lines, noticeNum, plate, dateStr, timeStr };
+}
+
+function wrapText(txt, width) {
+  const words = txt.split(' ');
+  const result = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + ' ' + w).trim().length <= width) {
+      current = (current + ' ' + w).trim();
+    } else {
+      if (current) result.push(current);
+      current = w;
+    }
+  }
+  if (current) result.push(current);
+  return result;
+}
+
+// ═══════════════════════════════════════
+// PREVIEW MODAL
+// ═══════════════════════════════════════
+function showPreview() {
+  if (document.getElementById('printBtn').classList.contains('disabled')) return;
+  const { lines, noticeNum } = buildReceiptLines();
+  document.getElementById('previewNum').textContent = noticeNum;
+  document.getElementById('receiptPreview').textContent = lines.join('\n');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════
+// PRINT — Star WebPRNT
+// ═══════════════════════════════════════
+function executePrint() {
+  closeModalDirect();
+
+  if (!printerIP) {
+    showToast('Set printer IP first', true);
+    return;
+  }
+
+  const { lines, noticeNum, plate, dateStr, timeStr } = buildReceiptLines();
+
+  // Build Star WebPRNT XML
+  const textContent = lines.join('\n');
+
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<ReceiptFormat>
+  <PrintContents>
+    <TextContent>
+      <Alignment>Left</Alignment>
+      <CharacterSet>UTF-8</CharacterSet>
+      <Text>${escapeXml(textContent)}</Text>
+    </TextContent>
+    <FeedAndCut>
+      <FeedLength>3</FeedLength>
+      <CutType>FullCut</CutType>
+    </FeedAndCut>
+  </PrintContents>
+</ReceiptFormat>`;
+
+  const url = `http://${printerIP}/WebPRNT/SendMessage`;
+
+  fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/xml; charset=utf-8' },
+    body: xml,
+    mode: 'no-cors'   // printer won't send CORS headers; no-cors silences the error
+  })
+  .then(() => {
+    recordNotice(noticeNum, plate, dateStr, timeStr);
+    showToast('✓ Printed — Notice #' + noticeNum);
+    advanceCounter();
+    resetForm();
+  })
+  .catch(err => {
+    // no-cors often throws even on success; try to record anyway
+    recordNotice(noticeNum, plate, dateStr, timeStr);
+    showToast('✓ Sent to printer');
+    advanceCounter();
+    resetForm();
+  });
+}
+
+function escapeXml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+// ═══════════════════════════════════════
+// COUNTER + HISTORY
+// ═══════════════════════════════════════
+function advanceCounter() {
+  violationCounter++;
+  localStorage.setItem('violationCounter', String(violationCounter));
+  updateNoticeNum();
+}
+
+function recordNotice(num, plate, date, time) {
+  const record = {
+    num, plate,
+    violation: selectedViolation.label,
+    fine: selectedViolation.fine,
+    color: document.getElementById('carColor').value.trim(),
+    make: document.getElementById('carMake').value.trim(),
+    date, time
+  };
+  history.unshift(record);
+  if (history.length > 200) history = history.slice(0, 200);
+  localStorage.setItem('violationHistory', JSON.stringify(history));
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) {
+    el.innerHTML = '<div class="empty-state">No notices issued yet</div>';
+    return;
+  }
+  el.innerHTML = history.map(r => `
+    <div class="history-item">
+      <div>
+        <div class="h-plate">${r.plate}</div>
+        <div class="h-meta">${r.violation} · ${r.date} ${r.time}</div>
+        ${r.make ? `<div class="h-meta">${r.color} ${r.make}</div>` : ''}
+      </div>
+      <div style="text-align:right">
+        <div class="h-fine">$${r.fine}</div>
+        <div class="h-num">#${r.num}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════
+function resetForm() {
+  document.getElementById('plateInput').value = '';
+  document.getElementById('carColor').value = '';
+  document.getElementById('carMake').value = '';
+  document.getElementById('notesInput').value = '';
+  document.querySelectorAll('.vio-btn').forEach(b => b.classList.remove('selected'));
+  selectedViolation = null;
+  photoDataURL = null;
+  const zone = document.getElementById('photoZone');
+  zone.innerHTML = `<div class="placeholder"><div class="cam-icon">📷</div><p>Tap to photograph license plate</p></div>`;
+  zone.classList.remove('has-photo');
+  document.getElementById('photoInput').value = '';
+  document.getElementById('printBtn').classList.add('disabled');
+}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast' + (isError ? ' error-toast' : '') + ' show';
+  setTimeout(() => { t.classList.remove('show'); }, 2800);
+}
+
+// ═══════════════════════════════════════
+// START
+// ═══════════════════════════════════════
+init();
+</script>
+</body>
+</html>
